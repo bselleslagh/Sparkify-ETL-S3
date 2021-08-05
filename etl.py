@@ -16,6 +16,9 @@ os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS_SECRET_ACCESS_KEY']
 
 
 def create_spark_session():
+    '''
+    Start a Spark sessions with the Hadoop packages installed
+    '''
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
@@ -24,6 +27,10 @@ def create_spark_session():
 
 
 def process_song_data(spark, input_data, output_data):
+    '''
+    Given the input and output paths on S3, this function will read all song data stored in JSON-format,
+    transform this data song and artists tables and store them on S3 as .parquet files.
+    '''    
     # get filepath to song data file
     song_data = 's3a://udacity-dend/song_data/*/*/*/*.json'
     
@@ -63,6 +70,10 @@ def process_song_data(spark, input_data, output_data):
 
 
 def process_log_data(spark, input_data, output_data):
+    '''
+    Given input and output paths on S3, this function will load the stored log data and transform this into the following tables:
+    users, time_table and songplays
+    '''
     # get filepath to log data file
     log_data = '%slog_data/*/*/*.json' % input_data
 
