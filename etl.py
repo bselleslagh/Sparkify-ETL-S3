@@ -32,7 +32,7 @@ def process_song_data(spark, input_data, output_data):
     transform this data song and artists tables and store them on S3 as .parquet files.
     '''    
     # get filepath to song data file
-    song_data = 's3a://udacity-dend/song_data/*/*/*/*.json'
+    song_data = 's3a://udacity-dend/song_data/A/A/A/*.json'
     
     # read song data file
     song_schema = R([
@@ -87,7 +87,7 @@ def process_log_data(spark, input_data, output_data):
     users = df.select("userId", "firstName", "lastName", "gender", "level")
     users = users.withColumnRenamed("userId", "user_id") \
     .withColumnRenamed("firstName", "first_name")\
-    .withColumnRenamed("lastName", "last_name")
+    .withColumnRenamed("lastName", "last_name").dropDuplicates()
 
     # write users table to parquet files
     users.write.mode("overwrite").parquet("%susers.parquet" % output_data)
@@ -107,7 +107,7 @@ def process_log_data(spark, input_data, output_data):
     .withColumn('week', weekofyear('start_time'))\
     .withColumn('month', month('start_time'))\
     .withColumn('year', year('start_time'))\
-    .withColumn('weekday', dayofweek('start_time'))
+    .withColumn('weekday', dayofweek('start_time')).dropDuplicates()
     
     # write time table to parquet files partitioned by year and month
     time_table.write.mode("overwrite").partitionBy("year", "month").parquet("%stime_table.parquet" % output_data)
@@ -116,13 +116,18 @@ def process_log_data(spark, input_data, output_data):
     song_df = spark.read.parquet("%ssongs.parquet" % output_data)  
     song_df.createOrReplaceTempView("songs")
     df.createOrReplaceTempView("songplays")
+
+    artist_df = spark.read.parquet("%sartists.parquet" % output_data)
+    artist_df.createOrReplaceTempView("artists")
     
     songplays_query = '''
-    SELECT a.start_time, a.userId, a.level, b.song_id, b.artist_id, a.sessionId, a.location, a.userAgent, 
+    SELECT a.start_time, a.userId, a.level, c.song_id, b.artist_id, a.sessionId, a.location, a.userAgent, 
     YEAR(a.start_time) as year, 
     MONTH(a.start_time) as month
     FROM songplays a
-    LEFT JOIN songs b ON a.song = b.title
+    LEFT JOIN artists b on a.artist = b.name
+    LEFT JOIN songs c ON a.song = c.title AND a.length = c.duration AND b.artist_id = c.artist_id
+
     '''
     
     # extract columns from joined song and log datasets to create songplays table 
